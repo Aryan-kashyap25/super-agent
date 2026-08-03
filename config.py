@@ -23,9 +23,31 @@ DEFAULT_DEVICE = "cuda" if os.getenv("FORCE_DEVICE") == "cuda" else "cpu"
 
 FUTURE_MODEL_NAMES = {
     "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
-    "generator_model": "localmind-placeholder-generator",
+    "generator_model": "microsoft/Phi-3-mini-4k-instruct",
+    "generator_fallback_model": "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
     "verifier_model": "localmind-placeholder-verifier",
 }
+
+LLM_MODEL_CANDIDATES = (
+    FUTURE_MODEL_NAMES["generator_model"],
+    FUTURE_MODEL_NAMES["generator_fallback_model"],
+)
+
+
+@dataclass(frozen=True)
+class GenerationSettings:
+    max_new_tokens: int
+    temperature: float
+    top_p: float
+    do_sample: bool
+
+
+LLM_GENERATION_SETTINGS = GenerationSettings(
+    max_new_tokens=int(os.getenv("LLM_MAX_NEW_TOKENS", "256")),
+    temperature=float(os.getenv("LLM_TEMPERATURE", "0.2")),
+    top_p=float(os.getenv("LLM_TOP_P", "0.9")),
+    do_sample=os.getenv("LLM_DO_SAMPLE", "false").strip().lower() == "true",
+)
 
 PROJECT_PATHS = {
     "project_root": PROJECT_ROOT,
@@ -61,6 +83,8 @@ class Configuration:
     output_dir: Path
     log_level: str
     future_model_names: dict[str, str]
+    llm_model_candidates: tuple[str, str]
+    llm_generation_settings: GenerationSettings
     device: str
 
 
@@ -76,6 +100,8 @@ def load_configuration() -> Configuration:
         output_dir=OUTPUT_DIR,
         log_level=LOG_LEVEL,
         future_model_names=FUTURE_MODEL_NAMES,
+        llm_model_candidates=LLM_MODEL_CANDIDATES,
+        llm_generation_settings=LLM_GENERATION_SETTINGS,
         device=get_device_name(),
     )
 
