@@ -22,6 +22,7 @@ logger = get_logger(__name__)
 @dataclass(frozen=True)
 class SearchResult:
     document_name: str
+    chunk_id: str
     chunk_text: str
     similarity_score: float
     metadata: dict[str, Any] = field(default_factory=dict)
@@ -174,6 +175,7 @@ def _chunk_resolved_cases(resolved_cases: list[dict[str, Any]]) -> list[ChunkedD
 def _to_result(hit: SearchHit) -> SearchResult:
     return SearchResult(
         document_name=hit.document_name,
+        chunk_id=hit.chunk_id,
         chunk_text=hit.text,
         similarity_score=hit.similarity_score,
         metadata=hit.metadata,

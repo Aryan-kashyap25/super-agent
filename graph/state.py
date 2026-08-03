@@ -17,3 +17,7 @@ class AgentState(TypedDict, total=False):
     execution_path: list[str]
     metadata: dict[str, Any]
     generation_metadata: dict[str, Any]
+    verification_passed: bool
+    verification_reason: str
+    retry_count: int
+    validation_errors: list[str]

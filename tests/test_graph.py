@@ -33,7 +33,7 @@ def test_answerable_route_executes_retrieval_and_generation():
         GraphDependencies(
             retrieval_engine=FakeRetrievalEngine(
                 result={
-                    "documents": [{"document_name": "KB-1", "chunk_text": "Relevant evidence.", "similarity_score": 0.92, "metadata": {}, "source_type": "knowledge_base"}],
+                        "documents": [{"document": "KB-1", "document_name": "KB-1", "chunk_id": "KB-1:0", "chunk_text": "Relevant evidence.", "similarity_score": 0.92, "metadata": {}, "source_type": "knowledge_base"}],
                     "resolved_cases": [],
                     "search_latency_seconds": 0.01,
                     "index_size": 1,

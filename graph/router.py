@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 from dataclasses import asdict
-from typing import Any, Iterable, Literal
+from typing import Any, Callable, Iterable, Literal
 
 from retrieval.search import RetrievalEngine, SearchResult
+
+from verifier.verifier import SafeFailureResponse, verify_generated_response
 
 from .state import AgentState
 
@@ -177,6 +179,53 @@ def generation_node(state: AgentState, response_generator: Any) -> AgentState:
     }
 
 
+def verification_node(state: AgentState, verification_engine: Callable[[AgentState], dict[str, Any]] | None = None) -> AgentState:
+    engine = verification_engine or verify_generated_response
+    verification_result = engine(state)
+    retry_count = int(state.get("retry_count", 0))
+    return {
+        **verification_result,
+        "retry_count": retry_count,
+        "logs": _append_steps(state.get("logs"), "VERIFY"),
+        "execution_path": _append_steps(state.get("execution_path"), "VERIFY"),
+    }
+
+
+def retry_node(state: AgentState) -> AgentState:
+    retry_count = int(state.get("retry_count", 0)) + 1
+    return {
+        "retry_count": retry_count,
+        "logs": _append_steps(state.get("logs"), "RETRY"),
+        "execution_path": _append_steps(state.get("execution_path"), "RETRY"),
+        "metadata": _merge_metadata(state.get("metadata"), {"retry_count": retry_count}),
+    }
+
+
+def pass_node(state: AgentState) -> AgentState:
+    return {
+        "logs": _append_steps(state.get("logs"), "PASS", "END"),
+        "execution_path": _append_steps(state.get("execution_path"), "PASS", "END"),
+    }
+
+
+def safe_failure_node(state: AgentState) -> AgentState:
+    safe_failure = SafeFailureResponse.create(state)
+    return {
+        "classification": safe_failure.classification,
+        "answer": safe_failure.answer,
+        "sources": safe_failure.sources,
+        "confidence": safe_failure.confidence,
+        "requires_human": safe_failure.requires_human,
+        "reason": safe_failure.reason,
+        "verification_passed": False,
+        "verification_reason": safe_failure.reason,
+        "validation_errors": safe_failure.validation_errors,
+        "logs": _append_steps(state.get("logs"), "SAFE_FAILURE", "END"),
+        "execution_path": _append_steps(state.get("execution_path"), "SAFE_FAILURE", "END"),
+        "metadata": _merge_metadata(state.get("metadata"), {"terminal_node": "safe_failure"}),
+    }
+
+
 def classify_question(question: str) -> tuple[RouteName, str, float]:
     if not question:
         return "clarification", "The question was empty or too vague to classify.", 0.0
@@ -236,7 +285,10 @@ def _merge_metadata(existing: dict[str, Any] | None, updates: dict[str, Any]) ->
 def _result_to_dict(result: SearchResult) -> dict[str, Any]:
     if isinstance(result, dict):
         return dict(result)
-    return asdict(result)
+    record = asdict(result)
+    record.setdefault("document", record.get("document_name"))
+    record.setdefault("passage_id", record.get("chunk_id"))
+    return record
 
 
 def _derive_confidence(sources: list[dict[str, Any]], default: float = 0.0) -> float:
