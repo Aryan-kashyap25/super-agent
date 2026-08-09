@@ -23,8 +23,13 @@ DEFAULT_DEVICE = "cuda" if os.getenv("FORCE_DEVICE") == "cuda" else "cpu"
 
 FUTURE_MODEL_NAMES = {
     "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
-    "generator_model": "microsoft/Phi-3-mini-4k-instruct",
+
+    # Primary lightweight model
+    "generator_model": "Qwen/Qwen2.5-0.5B-Instruct",
+
+    # Fallback
     "generator_fallback_model": "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+
     "verifier_model": "localmind-placeholder-verifier",
 }
 

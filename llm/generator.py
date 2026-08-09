@@ -99,8 +99,8 @@ def generate_response(
     return generator.generate(question, retrieved_documents, retrieved_cases)
 
 
-def _materialize_items(items: Iterable[Any]) -> list[Any]:
-    return list(items)
+def _materialize_items(items: Iterable[Any], max_items: int = 3) -> list[Any]:
+    return list(items)[:max_items]
 
 
 def _clean_output(text: str) -> str:

@@ -83,29 +83,45 @@ class LocalLLM:
         do_sample: bool,
     ) -> tuple[str, int, float]:
         generation_start = time.perf_counter()
+        if hasattr(self.tokenizer, "apply_chat_template") and self.tokenizer.chat_template is not None:
+            messages = [{"role": "user", "content": prompt}]
+            try:
+                formatted_prompt = self.tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+                if formatted_prompt:
+                    prompt = formatted_prompt
+            except Exception:
+                pass
+                
         tokenized = self.tokenizer(prompt, return_tensors="pt")
         input_ids = tokenized["input_ids"].to(self.model.device if hasattr(self.model, "device") else self.device)
         attention_mask = tokenized.get("attention_mask")
         if attention_mask is not None:
             attention_mask = attention_mask.to(input_ids.device)
 
-        output_ids = self.model.generate(
-            input_ids=input_ids,
-            attention_mask=attention_mask,
-            max_new_tokens=max_new_tokens,
-            temperature=temperature,
-            top_p=top_p,
-            do_sample=do_sample,
-            pad_token_id=getattr(self.tokenizer, "pad_token_id", None),
-            eos_token_id=getattr(self.tokenizer, "eos_token_id", None),
-        )
-        generation_seconds = time.perf_counter() - generation_start
+        gen_kwargs = {
+            "input_ids": input_ids,
+            "attention_mask": attention_mask,
+            "max_new_tokens": max_new_tokens,
+            "pad_token_id": getattr(self.tokenizer, "pad_token_id", None),
+            "eos_token_id": getattr(self.tokenizer, "eos_token_id", None),
+        }
+        
+        if do_sample:
+            gen_kwargs.update({
+                "do_sample": True,
+                "temperature": temperature,
+                "top_p": top_p,
+            })
+        else:
+            gen_kwargs["do_sample"] = False
 
-        generated_text = self.tokenizer.decode(output_ids[0], skip_special_tokens=True)
-        if generated_text.startswith(prompt):
-            generated_text = generated_text[len(prompt) :]
+        output_ids = self.model.generate(**gen_kwargs)
+        generation_seconds = time.perf_counter() - generation_start
+        input_length = input_ids.shape[-1]
+        generated_tokens = output_ids[0][input_length:]
+        generated_text = self.tokenizer.decode(generated_tokens, skip_special_tokens=True)
         cleaned_text = generated_text.strip()
-        token_count = max(int(output_ids.shape[-1] - input_ids.shape[-1]), 0)
+        token_count = max(int(output_ids.shape[-1] - input_length), 0)
         return cleaned_text, token_count, generation_seconds
 
 

@@ -33,14 +33,14 @@ def build_prompt(question: str, retrieved_documents: Iterable[Any], retrieved_ca
 
     return (
         f"System:\n{SYSTEM_PROMPT}\n\n"
-        f"User Question:\n{question.strip()}\n\n"
-        f"{document_section}\n\n"
-        f"{case_section}\n\n"
+        f"Context:\n{document_section}\n\n{case_section}\n\n"
+        f"Question:\n{question.strip()}\n\n"
         "Instructions:\n"
-        "Answer only from the retrieved evidence.\n"
-        "If the evidence is insufficient, respond exactly with:\n"
-        f"{INSUFFICIENT_EVIDENCE_RESPONSE}\n"
-        "Return a concise customer-support answer."
+        "Answer the question concisely using only the context provided above.\n"
+        "If the context explicitly addresses the topic (e.g. security policies, rules), use it to form your answer.\n"
+        "Only if the context contains absolutely no information related to the question, reply exactly with:\n"
+        f"{INSUFFICIENT_EVIDENCE_RESPONSE}\n\n"
+        "Answer:\n"
     )
 
 
@@ -56,14 +56,8 @@ def _format_item(item: Any, label: str) -> str:
     if isinstance(item, dict):
         name = item.get("document_name") or item.get("title") or item.get("chunk_id") or label
         text = item.get("chunk_text") or item.get("text") or item.get("summary") or ""
-        score = item.get("similarity_score")
-        metadata = item.get("metadata", {})
     else:
         name = getattr(item, "document_name", None) or getattr(item, "title", None) or getattr(item, "chunk_id", None) or label
         text = getattr(item, "chunk_text", None) or getattr(item, "text", None) or getattr(item, "summary", None) or ""
-        score = getattr(item, "similarity_score", None)
-        metadata = getattr(item, "metadata", {})
 
-    score_text = f" score={score:.4f}" if isinstance(score, (int, float)) else ""
-    metadata_text = f" metadata={metadata}" if metadata else ""
-    return f"{name}{score_text}: {str(text).strip()}{metadata_text}"
+    return f"{name}: {str(text).strip()}"

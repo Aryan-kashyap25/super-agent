@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 from dataclasses import asdict
 from typing import Any, Callable, Iterable, Literal
 
@@ -150,6 +151,7 @@ def retrieval_node(state: AgentState, retrieval_engine: RetrievalEngine) -> Agen
                     "search_latency_seconds": search_result.get("search_latency_seconds", 0.0),
                     "index_size": search_result.get("index_size", 0),
                     "embedding_dimension": search_result.get("embedding_dimension", 0),
+                    "embedding_load_time": search_result.get("embedding_load_time", 0.0),
                 }
             },
         ),
@@ -181,11 +183,19 @@ def generation_node(state: AgentState, response_generator: Any) -> AgentState:
 
 def verification_node(state: AgentState, verification_engine: Callable[[AgentState], dict[str, Any]] | None = None) -> AgentState:
     engine = verification_engine or verify_generated_response
+    verification_start = time.perf_counter()
     verification_result = engine(state)
+    verification_seconds = time.perf_counter() - verification_start
     retry_count = int(state.get("retry_count", 0))
     return {
         **verification_result,
         "retry_count": retry_count,
+        "verification_metadata": {
+            "verification_time": verification_seconds,
+            "verification_passed": bool(verification_result.get("verification_passed", False)),
+            "validation_errors": list(verification_result.get("validation_errors", [])),
+            "confidence": float(verification_result.get("confidence", state.get("confidence", 0.0)) or 0.0),
+        },
         "logs": _append_steps(state.get("logs"), "VERIFY"),
         "execution_path": _append_steps(state.get("execution_path"), "VERIFY"),
     }

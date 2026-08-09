@@ -21,3 +21,4 @@ class AgentState(TypedDict, total=False):
     verification_reason: str
     retry_count: int
     validation_errors: list[str]
+    verification_metadata: dict[str, Any]
