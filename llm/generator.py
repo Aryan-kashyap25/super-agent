@@ -97,8 +97,7 @@ def generate_response(
 ) -> dict[str, Any]:
     generator = ResponseGenerator.create(llm=llm)
     return generator.generate(question, retrieved_documents, retrieved_cases)
-
-
+    
 def _materialize_items(items: Iterable[Any], max_items: int = 3) -> list[Any]:
     return list(items)[:max_items]
 

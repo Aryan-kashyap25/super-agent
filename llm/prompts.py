@@ -36,7 +36,7 @@ def build_prompt(question: str, retrieved_documents: Iterable[Any], retrieved_ca
         f"Context:\n{document_section}\n\n{case_section}\n\n"
         f"Question:\n{question.strip()}\n\n"
         "Instructions:\n"
-        "Answer the question concisely using only the context provided above.\n"
+        "Provide a clear and detailed explanation to answer the question, using only the context provided above.\n"
         "If the context explicitly addresses the topic (e.g. security policies, rules), use it to form your answer.\n"
         "Only if the context contains absolutely no information related to the question, reply exactly with:\n"
         f"{INSUFFICIENT_EVIDENCE_RESPONSE}\n\n"
